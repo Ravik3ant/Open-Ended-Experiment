@@ -1,54 +1,56 @@
 # Radioactive Decay Poisson Analyzer
 
-Menu-driven Python project to test whether radioactive decay counts follow a Poisson distribution.
+Research-oriented toolkit for testing Poisson behavior of radioactive decay counts using frequency-vs-count analysis.
 
-## Quick Start
+## What Changed (Major)
+
+- Refactored to `src` package layout.
+- Added robust ignore rules for generated output folders.
+- Upgraded docs into multi-page `wiki/` folder.
+
+## Run
 
 ```bash
 python -m pip install -r requirements.txt
 python main.py
 ```
 
-Then use:
+Menu:
 
-- `1. START` to run all analyses and report generation
-- `2. CONFIG` to set data path/output, toggle mode, or open `config.json` in `nano`
-- `3. VALIDATE DATA` to verify workbook format before running
+- `1) START`: run full pipeline
+- `2) CONFIG`: edit path/mode/output/nano config
+- `3) VALIDATE DATA`: check workbook format
+- `4) EXIT`
 
-## Project Structure
+## Structure
 
-- `main.py`: improved rich CLI (`START`, `CONFIG`, `VALIDATE DATA`, `EXIT`)
-- `config.json`: controls colors, mode, shown metrics, paths, seeds
-- `poisson_utils.py`: shared math/config utilities
-- `data_validation.py`: validates workbook sheets/columns and reports valid row counts
-- `experiment1_poisson_runs.py`: Experiment 1 pipeline
-- `experiment2_poisson_runs.py`: Experiment 2 pipeline
-- `generate_pdf_report.py`: creates final PDF report
-- `wiki.md`: detailed explanation of code snippets, formulas, and significance
-
-## Experiments
-
-- **Experiment 1** (fixed `t=10s`, varying subset size)
-  - first 50, first 100, random 50, random 100, all rows
-
-- **Experiment 2** (fixed `N=50`, varying time)
-  - `t=10s`, `t=20s`, `t=30s`
-
-All plots are frequency vs count, with Poisson expected frequency overlay.
+- `src/poisson_decay/`: core package code
+- `main.py`: root wrapper entrypoint
+- `experiment1_poisson_runs.py`: wrapper to run experiment 1
+- `experiment2_poisson_runs.py`: wrapper to run experiment 2
+- `generate_pdf_report.py`: wrapper to generate report
+- `wiki/`: detailed research docs
 
 ## Data Format
 
-Input workbook should have:
+Excel file should contain:
 
 - `Sheet1`: `Sr. Num`, `Count`
 - `Sheet2`: `Sr. No.`, `t=20s`, `t=30s`
 
-Default input file is `data.xlsx` (editable in `config.json` or CLI config menu).
+Default path is `data.xlsx` (editable via config menu).
 
 ## Reproducibility
 
-Running twice with same data and same config gives the same outputs.
+Runs are deterministic with same config and data because seeds are fixed.
 
-Reason: random subsets use fixed seeds from `config.json`.
+See:
 
-If you change seeds, random-subset outputs will change.
+- `wiki/reproducibility/random-seeds.md`
+- `wiki/reproducibility/seed-stability.md`
+
+## Documentation
+
+Start from:
+
+- `wiki/README.md`

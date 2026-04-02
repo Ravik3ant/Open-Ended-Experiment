@@ -1,0 +1,1 @@
+"""Poisson decay analysis package."""

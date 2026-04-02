@@ -209,3 +209,10 @@ __marimo__/
 # Project data/artifacts
 outputs/
 data.xlsx
+
+# Ignore any output-like generated directories anywhere
+**/outputs/
+**/output/
+**/out/
+**/results/
+**/artifacts/
