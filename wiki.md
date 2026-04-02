@@ -53,6 +53,10 @@
   - `t=30s` from `Sheet2`
 - Plots frequency vs count for each and combined.
 - Writes summary CSV.
+- Adds seed-stability outputs:
+  - `exp1_seed_stability_summary.csv`
+  - `exp1_seed_stability_report.md`
+  - These show whether conclusions remain stable across multiple seeds.
 
 ### `generate_pdf_report.py`
 

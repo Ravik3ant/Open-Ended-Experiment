@@ -63,6 +63,62 @@ def build_multiseed_random_summary(data: pd.DataFrame, seeds: list[int]) -> pd.D
     return pd.DataFrame(rows)
 
 
+def build_seed_stability_summary(multiseed: pd.DataFrame) -> pd.DataFrame:
+    summary_rows = []
+    for subset_size, grp in multiseed.groupby("Subset_size"):
+        fano_ok = ((grp["Fano_var_over_mean"] >= 0.8) & (grp["Fano_var_over_mean"] <= 1.2)).mean()
+        chi2_ok = ((grp["Chi2_per_DOF_hist"] >= 0.5) & (grp["Chi2_per_DOF_hist"] <= 1.5)).mean()
+        mean_cv_pct = (grp["Mean"].std(ddof=1) / grp["Mean"].mean() * 100.0) if grp["Mean"].mean() != 0 else float("nan")
+        stable = (fano_ok >= 0.7) and (chi2_ok >= 0.7) and (mean_cv_pct <= 5.0)
+
+        summary_rows.append(
+            {
+                "Subset_size": int(subset_size),
+                "Seeds_tested": int(len(grp)),
+                "Mean_of_mean": float(grp["Mean"].mean()),
+                "Std_of_mean": float(grp["Mean"].std(ddof=1)),
+                "Mean_CV_percent": float(mean_cv_pct),
+                "Mean_Fano": float(grp["Fano_var_over_mean"].mean()),
+                "Std_Fano": float(grp["Fano_var_over_mean"].std(ddof=1)),
+                "Fano_pass_fraction": float(fano_ok),
+                "Mean_chi2_per_dof": float(grp["Chi2_per_DOF_hist"].mean()),
+                "Std_chi2_per_dof": float(grp["Chi2_per_DOF_hist"].std(ddof=1)),
+                "Chi2_pass_fraction": float(chi2_ok),
+                "Stable_conclusion": bool(stable),
+            }
+        )
+    return pd.DataFrame(summary_rows)
+
+
+def write_seed_stability_markdown(stability_df: pd.DataFrame, output_path: Path):
+    lines = [
+        "# Seed Stability Report",
+        "",
+        "This report checks whether conclusions from random subsets are stable across multiple seeds.",
+        "",
+        "Pass rules used:",
+        "- Fano in [0.8, 1.2] for at least 70% of seeds",
+        "- chi2/dof in [0.5, 1.5] for at least 70% of seeds",
+        "- mean CV <= 5% across seeds",
+        "",
+    ]
+    for _, r in stability_df.iterrows():
+        lines.extend(
+            [
+                f"## Subset size {int(r['Subset_size'])}",
+                f"- Seeds tested: {int(r['Seeds_tested'])}",
+                f"- Mean of subset means: {r['Mean_of_mean']:.4f}",
+                f"- Std of subset means: {r['Std_of_mean']:.4f}",
+                f"- Mean CV (%): {r['Mean_CV_percent']:.3f}",
+                f"- Mean Fano: {r['Mean_Fano']:.4f} (pass fraction: {r['Fano_pass_fraction']:.2f})",
+                f"- Mean chi2/dof: {r['Mean_chi2_per_dof']:.4f} (pass fraction: {r['Chi2_pass_fraction']:.2f})",
+                f"- Stable conclusion: {'YES' if r['Stable_conclusion'] else 'NO'}",
+                "",
+            ]
+        )
+    output_path.write_text("\n".join(lines), encoding="utf-8")
+
+
 def run_experiment1(excel_path: Path, output_dir: Path, config_path: Path = Path("config.json"), mode: str | None = None):
     output_dir.mkdir(parents=True, exist_ok=True)
 
@@ -124,10 +180,16 @@ def run_experiment1(excel_path: Path, output_dir: Path, config_path: Path = Path
     )
     multiseed_avg.to_csv(output_dir / "exp1_random_multiseed_avg.csv", index=False)
 
+    stability = build_seed_stability_summary(multiseed)
+    stability.to_csv(output_dir / "exp1_seed_stability_summary.csv", index=False)
+    write_seed_stability_markdown(stability, output_dir / "exp1_seed_stability_report.md")
+
     summary = pd.DataFrame(summary_rows)
     summary.to_csv(output_dir / "exp1_summary.csv", index=False)
     print("Experiment 1 outputs saved to:", output_dir)
     print(summary.to_string(index=False, float_format=lambda x: f"{x:.4f}"))
+    print("\nSeed stability summary:")
+    print(stability.to_string(index=False, float_format=lambda x: f"{x:.4f}"))
 
 
 if __name__ == "__main__":
