@@ -76,6 +76,13 @@
   - which metrics appear in plot stats box
   - report detail level
 
+### `data_validation.py`
+
+- Validates workbook before running pipeline.
+- Checks required sheets and required column names.
+- Reports total rows and valid rows after dropping missing values.
+- Prevents wasted runs due to bad input format.
+
 ## 2) Parameter Definitions, Derivations, and Importance
 
 Let observed counts be `x_1, x_2, ..., x_N`.
@@ -154,3 +161,6 @@ Use `main.py` for menu-driven flow:
 - `CONFIG`
   - set data file path from CLI input.
   - open `config.json` in nano for manual editing.
+
+- `VALIDATE DATA`
+  - checks workbook structure without running analysis.

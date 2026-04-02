@@ -1,11 +1,20 @@
 {
   "defaults": {
     "data_path": "data.xlsx",
-    "output_dir": "outputs",
-    "mode": "scientific"
+    "output_dir": "outputs-clean",
+    "mode": "clean"
   },
   "random": {
-    "seeds": [11, 23, 37, 53, 71, 89, 101, 131]
+    "seeds": [
+      11,
+      23,
+      37,
+      53,
+      71,
+      89,
+      101,
+      131
+    ]
   },
   "plot": {
     "figure_dpi": 300,

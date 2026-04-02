@@ -12,13 +12,15 @@ python main.py
 Then use:
 
 - `1. START` to run all analyses and report generation
-- `2. CONFIG` to set data file path or open `config.json` in `nano`
+- `2. CONFIG` to set data path/output, toggle mode, or open `config.json` in `nano`
+- `3. VALIDATE DATA` to verify workbook format before running
 
 ## Project Structure
 
-- `main.py`: interactive CLI (`START`, `CONFIG`, `EXIT`)
+- `main.py`: improved rich CLI (`START`, `CONFIG`, `VALIDATE DATA`, `EXIT`)
 - `config.json`: controls colors, mode, shown metrics, paths, seeds
 - `poisson_utils.py`: shared math/config utilities
+- `data_validation.py`: validates workbook sheets/columns and reports valid row counts
 - `experiment1_poisson_runs.py`: Experiment 1 pipeline
 - `experiment2_poisson_runs.py`: Experiment 2 pipeline
 - `generate_pdf_report.py`: creates final PDF report
