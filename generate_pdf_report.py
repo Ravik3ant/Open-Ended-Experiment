@@ -4,6 +4,8 @@ import matplotlib.pyplot as plt
 import pandas as pd
 from matplotlib.backends.backend_pdf import PdfPages
 
+from poisson_utils import load_config, select_mode
+
 
 def add_text_page(pdf: PdfPages, title: str, lines: list[str]):
     fig = plt.figure(figsize=(8.27, 11.69))
@@ -42,104 +44,95 @@ def add_image_page(pdf: PdfPages, title: str, image_path: Path, caption: str):
 def summary_lines(df: pd.DataFrame, cols: list[str], label_col: str = "Dataset") -> list[str]:
     lines = []
     for _, row in df.iterrows():
-        parts = [f"{c}={row[c]:.4f}" if isinstance(row[c], float) else f"{c}={row[c]}" for c in cols]
+        parts = [f"{c}={row[c]:.4f}" if isinstance(row[c], float) else f"{c}={row[c]}" for c in cols if c in df.columns]
         lines.append(f"- {row[label_col]}: " + ", ".join(parts))
     return lines
 
 
-def main():
-    out = Path("outputs")
+def _metric_explanations(level: str) -> list[str]:
+    common = [
+        "- Mean (mu): average count; estimates Poisson lambda.",
+        "- SD: measured spread of counts.",
+        "- Poisson SD sqrt(mu): ideal Poisson spread.",
+        "- Fano = variance/mean: near 1 indicates Poisson-like behavior.",
+        "- chi2/dof: agreement between observed and expected Poisson frequencies.",
+    ]
+    if level == "summary":
+        return common
+    return common + [
+        "- Variance s^2 = (1/(N-1)) * sum((x_i-mu)^2).",
+        "- SEM = SD/sqrt(N): uncertainty in mean estimate.",
+        "- Relative error scale 1/sqrt(mu): fractional counting uncertainty.",
+        "- chi2 = sum((O_k-E_k)^2/E_k), reduced chi2 = chi2/dof.",
+    ]
+
+
+def main(config_path: Path = Path("config.json"), mode: str | None = None):
+    cfg = load_config(config_path)
+    mode_cfg = select_mode(cfg, mode)
+    out = Path(cfg["defaults"]["output_dir"])
+
     exp1 = pd.read_csv(out / "exp1_summary.csv")
     exp2 = pd.read_csv(out / "exp2_summary.csv")
     exp1_avg = pd.read_csv(out / "exp1_random_multiseed_avg.csv")
+
+    if mode_cfg["report_level"] == "summary":
+        exp1_cols = ["N", "Mean", "Sample_SD", "Chi2_per_DOF_hist"]
+        exp2_cols = ["N", "Mean", "Sample_SD", "Chi2_per_DOF_hist"]
+    else:
+        exp1_cols = ["N", "Mean", "Sample_SD", "Poisson_SD_sqrt_mean", "Fano_var_over_mean", "Chi2_per_DOF_hist"]
+        exp2_cols = [
+            "N",
+            "Mean",
+            "Sample_SD",
+            "Poisson_SD_sqrt_mean",
+            "Relative_error_1_over_sqrt_mean",
+            "Fano_var_over_mean",
+            "Chi2_per_DOF_hist",
+        ]
 
     pdf_path = out / "poisson_report.pdf"
     with PdfPages(pdf_path) as pdf:
         add_text_page(
             pdf,
-            "Poisson Analysis Report",
+            f"Poisson Analysis Report ({cfg['defaults']['mode'] if mode is None else mode})",
             [
                 "Objective: verify radioactive decay counts follow Poisson statistics.",
                 "Approach: frequency-vs-count histograms with Poisson expected curve and sqrt(n) error bars.",
                 "",
-                "Experiment 1: compare first 50/100, random 50/100, and full dataset (Sheet1).",
-                "Experiment 2: compare t=10s, t=20s, t=30s at fixed N=50.",
+                "Experiment 1: first 50/100, random 50/100, and full set.",
+                "Experiment 2: t=10s, t=20s, t=30s at fixed N=50.",
                 "",
-                "Meaning of metrics, formulas, and significance:",
-                "- Mean (mu): average count; Poisson parameter lambda is estimated by mu.",
-                "  Formula: mu = (1/N) * sum(x_i). Significance: central expected count.",
-                "- Variance (s^2): spread around mean, s^2 = (1/(N-1)) * sum((x_i-mu)^2).",
-                "- SD (s): standard deviation = sqrt(s^2), observed scatter in counts.",
-                "- Poisson SD (sqrt(mu)): ideal Poisson spread; SD close to this supports Poisson model.",
-                "- SEM: standard error of mean = SD/sqrt(N), precision of estimated mean.",
-                "- Relative error scale: 1/sqrt(mu), expected fractional counting uncertainty.",
-                "- Fano factor: F = variance/mu. F~1 Poisson-like, >1 over-dispersed, <1 under-dispersed.",
-                "- Chi2/dof (hist): chi2 = sum((O_k-E_k)^2/E_k), reduced chi2 = chi2/dof.",
-                "  Near 1 usually indicates reasonable fit.",
-                "",
-                "Why zero-height bars appear:",
-                "- A count value in range may not appear in that sample, so frequency is 0.",
+                "Meaning of metrics:",
+                *_metric_explanations(mode_cfg["report_level"]),
             ],
         )
 
-        add_image_page(
-            pdf,
-            "Experiment 1 (First subsets)",
-            out / "exp1_combined_first_subsets_freq.png",
-            "Observed frequencies (bars) vs expected Poisson frequencies (line).",
-        )
-        add_image_page(
-            pdf,
-            "Experiment 1 (Random subsets)",
-            out / "exp1_combined_random_subsets_freq.png",
-            "Random subsets are sampled without replacement.",
-        )
+        add_image_page(pdf, "Experiment 1 (First subsets)", out / "exp1_combined_first_subsets_freq.png", "Observed bars vs Poisson expected line.")
+        add_image_page(pdf, "Experiment 1 (Random subsets)", out / "exp1_combined_random_subsets_freq.png", "Random subsets are sampled without replacement.")
         add_text_page(
             pdf,
             "Experiment 1 Summary",
             [
                 "Main dataset summaries:",
-                *summary_lines(
-                    exp1,
-                    ["N", "Mean", "Sample_SD", "Poisson_SD_sqrt_mean", "Fano_var_over_mean", "Chi2_per_DOF_hist"],
-                ),
+                *summary_lines(exp1, exp1_cols),
                 "",
                 "Random-subset multi-seed averages:",
-                *summary_lines(
-                    exp1_avg.rename(columns={"N_random_avg": "SubsetSize"}),
-                    ["SubsetSize", "Mean", "Sample_SD", "Poisson_SD_sqrt_mean", "Fano_var_over_mean", "Chi2_per_DOF_hist"],
-                    label_col="SubsetSize",
-                ),
+                *summary_lines(exp1_avg.rename(columns={"N_random_avg": "SubsetSize"}), ["SubsetSize", "Mean", "Sample_SD", "Chi2_per_DOF_hist"], label_col="SubsetSize"),
             ],
         )
 
-        add_image_page(
-            pdf,
-            "Experiment 2 (Time windows)",
-            out / "exp2_combined_times_freq.png",
-            "Fixed N=50, increasing time window raises mean counts.",
-        )
+        add_image_page(pdf, "Experiment 2 (Time windows)", out / "exp2_combined_times_freq.png", "Fixed N=50, increasing time window raises mean counts.")
         add_text_page(
             pdf,
             "Experiment 2 Summary",
             [
-                *summary_lines(
-                    exp2,
-                    [
-                        "N",
-                        "Mean",
-                        "Sample_SD",
-                        "Poisson_SD_sqrt_mean",
-                        "Relative_error_1_over_sqrt_mean",
-                        "Fano_var_over_mean",
-                        "Chi2_per_DOF_hist",
-                    ],
-                ),
+                *summary_lines(exp2, exp2_cols),
                 "",
                 "Interpretation:",
-                "- Mean count increases from 10s to 20s to 30s.",
-                "- Relative error scale 1/sqrt(mean) decreases with larger counting time.",
-                "- This matches expected Poisson counting-statistics trend.",
+                "- Mean count rises from 10s to 20s to 30s.",
+                "- Relative error scale decreases with larger counting time.",
+                "- This matches expected Poisson counting-statistics behavior.",
             ],
         )
 
@@ -147,4 +140,5 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    cfg = load_config("config.json")
+    main(Path("config.json"), cfg["defaults"]["mode"])

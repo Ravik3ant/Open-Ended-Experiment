@@ -1,7 +1,20 @@
+import json
 import math
+from pathlib import Path
 
-import matplotlib.pyplot as plt
 import numpy as np
+
+
+def load_config(config_path: Path | str = "config.json") -> dict:
+    with open(config_path, "r", encoding="utf-8") as f:
+        return json.load(f)
+
+
+def select_mode(config: dict, mode: str | None = None) -> dict:
+    selected = mode or config["defaults"]["mode"]
+    if selected not in config["modes"]:
+        raise ValueError(f"Unknown mode: {selected}")
+    return config["modes"][selected]
 
 
 def poisson_pmf(k: np.ndarray, lam: float) -> np.ndarray:
@@ -51,50 +64,3 @@ def chi2_hist(observed: np.ndarray, expected: np.ndarray) -> tuple[float, int, f
     chi2 = float(np.sum(((observed[mask] - expected[mask]) ** 2) / expected[mask]))
     dof = int(mask.sum() - 2)
     return chi2, dof, (chi2 / dof if dof > 0 else float("nan"))
-
-
-def plot_freq_vs_count(
-    ax,
-    counts: np.ndarray,
-    title: str,
-    bar_color: str,
-    edge_color: str,
-    err_color: str,
-    show_relative_error: bool = False,
-) -> dict:
-    stats = basic_stats(counts, include_relative_error=show_relative_error)
-    k, observed, expected = observed_expected(counts)
-    obs_err = np.sqrt(np.maximum(observed, 1.0))
-    chi2, dof, red = chi2_hist(observed, expected)
-
-    ax.bar(k, observed, width=0.86, color=bar_color, edgecolor=edge_color, alpha=0.9, label="Observed frequency")
-    ax.errorbar(k, observed, yerr=obs_err, fmt="none", ecolor=err_color, elinewidth=1.1, capsize=2, label="Observed error = sqrt(n)")
-    ax.plot(k, expected, color="#d62728", linewidth=2.0, marker="o", markersize=3.5, label="Expected Poisson frequency")
-
-    lines = [
-        f"N={stats['N']}",
-        f"mean={stats['Mean']:.2f}",
-        f"SD={stats['Sample_SD']:.2f}",
-        f"sqrt(mean)={stats['Poisson_SD_sqrt_mean']:.2f}",
-    ]
-    if show_relative_error:
-        lines.append(f"1/sqrt(mean)={stats['Relative_error_1_over_sqrt_mean']:.4f}")
-    lines.extend([f"Fano={stats['Fano_var_over_mean']:.3f}", f"chi2/dof={red:.3f}"])
-    ax.text(
-        0.02,
-        0.98,
-        "\n".join(lines),
-        transform=ax.transAxes,
-        va="top",
-        ha="left",
-        fontsize=8.7,
-        bbox=dict(boxstyle="round,pad=0.3", facecolor="white", edgecolor="#666666", alpha=0.92),
-    )
-
-    ax.set_title(title, fontsize=11, fontweight="bold")
-    ax.set_xlabel("Count")
-    ax.set_ylabel("Frequency")
-    ax.grid(axis="y", linestyle="--", alpha=0.25)
-    ax.legend(loc="upper right", fontsize=8)
-
-    return {**stats, "Chi2_hist": chi2, "DOF_hist": dof, "Chi2_per_DOF_hist": red}

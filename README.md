@@ -1,121 +1,52 @@
-# Radioactive Decay Poisson Analysis
+# Radioactive Decay Poisson Analyzer
 
-This project checks whether radioactive decay counting data follows a Poisson distribution.
+Menu-driven Python project to test whether radioactive decay counts follow a Poisson distribution.
 
-The analysis is split into two experiments:
+## Quick Start
 
-- **Experiment 1 (fixed time, varying sample size)**
-  - Uses `t = 10 s` data from `Sheet1`
-  - Compares: first 50, first 100, random 50, random 100, and full set
-  - Goal: show statistical estimates become more stable as sample size grows
+```bash
+python -m pip install -r requirements.txt
+python main.py
+```
 
-- **Experiment 2 (fixed sample size, varying counting time)**
-  - Uses `N = 50` for each time window: `t = 10 s`, `20 s`, `30 s`
-  - Goal: show relative counting uncertainty decreases as counting time increases
+Then use:
 
-All primary plots are **frequency vs count** (histogram style), which is the correct way to test Poisson behavior.
+- `1. START` to run all analyses and report generation
+- `2. CONFIG` to set data file path or open `config.json` in `nano`
 
-## Data File Format
+## Project Structure
 
-Put `data.xlsx` in the project root.
+- `main.py`: interactive CLI (`START`, `CONFIG`, `EXIT`)
+- `config.json`: controls colors, mode, shown metrics, paths, seeds
+- `poisson_utils.py`: shared math/config utilities
+- `experiment1_poisson_runs.py`: Experiment 1 pipeline
+- `experiment2_poisson_runs.py`: Experiment 2 pipeline
+- `generate_pdf_report.py`: creates final PDF report
+- `wiki.md`: detailed explanation of code snippets, formulas, and significance
 
-Expected sheets/columns:
+## Experiments
+
+- **Experiment 1** (fixed `t=10s`, varying subset size)
+  - first 50, first 100, random 50, random 100, all rows
+
+- **Experiment 2** (fixed `N=50`, varying time)
+  - `t=10s`, `t=20s`, `t=30s`
+
+All plots are frequency vs count, with Poisson expected frequency overlay.
+
+## Data Format
+
+Input workbook should have:
 
 - `Sheet1`: `Sr. Num`, `Count`
 - `Sheet2`: `Sr. No.`, `t=20s`, `t=30s`
 
-## Files and What They Do
+Default input file is `data.xlsx` (editable in `config.json` or CLI config menu).
 
-- `poisson_utils.py`
-  - Shared helper functions used by both experiments
-  - Computes Poisson PMF, statistics, expected histogram, chi-square, and plotting function
+## Reproducibility
 
-- `experiment1_poisson_runs.py`
-  - Runs Experiment 1
-  - Generates individual and combined plots
-  - Creates `exp1_summary.csv`
-  - Creates multi-seed random subset summaries:
-    - `exp1_random_multiseed_raw.csv`
-    - `exp1_random_multiseed_avg.csv`
+Running twice with same data and same config gives the same outputs.
 
-- `experiment2_poisson_runs.py`
-  - Runs Experiment 2
-  - Generates individual and combined plots
-  - Creates `exp2_summary.csv`
+Reason: random subsets use fixed seeds from `config.json`.
 
-- `generate_pdf_report.py`
-  - Builds `outputs/poisson_report.pdf` with:
-    - experiment objective
-    - metric explanations
-    - combined plots
-    - summary tables and interpretation
-
-- `requirements.txt`
-  - Python dependencies
-
-## Installation
-
-```bash
-python -m pip install -r requirements.txt
-```
-
-## How to Run
-
-```bash
-python experiment1_poisson_runs.py
-python experiment2_poisson_runs.py
-python generate_pdf_report.py
-```
-
-Outputs are written to `outputs/`.
-
-## Meaning of Parameters
-
-Let measured counts be `x_1, x_2, ..., x_N`.
-
-- **Mean (`mu`)**
-  - Formula: `mu = (1/N) * sum(x_i)`
-  - Meaning: best estimate of Poisson parameter `lambda`
-
-- **Variance (`s^2`)**
-  - Formula: `s^2 = (1/(N-1)) * sum((x_i - mu)^2)`
-  - Meaning: spread of measured counts
-
-- **Sample SD (`s`)**
-  - Formula: `s = sqrt(s^2)`
-  - Meaning: observed absolute fluctuations
-
-- **Poisson SD (`sqrt(mu)`)**
-  - Formula: `sigma_P = sqrt(mu)`
-  - Meaning: theoretical Poisson fluctuation scale
-  - Check: if `s` is close to `sqrt(mu)`, data is Poisson-like
-
-- **SEM (Standard Error of Mean)**
-  - Formula: `SEM = s / sqrt(N)`
-  - Meaning: uncertainty in the estimated mean
-  - As `N` increases, SEM usually decreases
-
-- **Relative error scale (`1/sqrt(mu)`)**
-  - Formula: `1/sqrt(mu)`
-  - Meaning: approximate fractional counting uncertainty
-  - As count level (or counting time) increases, this decreases
-
-- **Fano Factor (`F`)**
-  - Formula: `F = variance / mean`
-  - Interpretation:
-    - `F ~ 1`: Poisson-like
-    - `F > 1`: over-dispersion (extra fluctuations)
-    - `F < 1`: under-dispersion
-
-- **Chi-square and reduced chi-square (`chi2/dof`)**
-  - Bin-wise formula: `chi2 = sum((O_k - E_k)^2 / E_k)`
-    - `O_k` = observed frequency in bin `k`
-    - `E_k` = expected Poisson frequency in bin `k`
-  - Reduced chi-square: `chi2/dof`
-  - Interpretation (rule of thumb): values near `1` indicate reasonable agreement
-
-## Notes
-
-- Random subsets are sampled **without replacement** (no repeats inside one subset).
-- If a histogram bar has zero height, it means that count value did not occur in that sample.
-- Empty bins are intentionally shown for a complete frequency-vs-count view.
+If you change seeds, random-subset outputs will change.

@@ -1,0 +1,64 @@
+{
+  "defaults": {
+    "data_path": "data.xlsx",
+    "output_dir": "outputs",
+    "mode": "scientific"
+  },
+  "random": {
+    "seeds": [11, 23, 37, 53, 71, 89, 101, 131]
+  },
+  "plot": {
+    "figure_dpi": 300,
+    "show_grid": true
+  },
+  "modes": {
+    "scientific": {
+      "show_stats_box": true,
+      "stats_to_show": [
+        "N",
+        "Mean",
+        "Sample_SD",
+        "Poisson_SD_sqrt_mean",
+        "Relative_error_1_over_sqrt_mean",
+        "Fano_var_over_mean",
+        "Chi2_per_DOF_hist"
+      ],
+      "report_level": "detailed",
+      "colors": {
+        "exp1": {
+          "bar": "#9ecae1",
+          "edge": "#3182bd",
+          "error": "#08519c"
+        },
+        "exp2": {
+          "bar": "#c7e9c0",
+          "edge": "#238b45",
+          "error": "#006d2c"
+        },
+        "expected": "#d62728"
+      }
+    },
+    "clean": {
+      "show_stats_box": true,
+      "stats_to_show": [
+        "Mean",
+        "Sample_SD",
+        "Chi2_per_DOF_hist"
+      ],
+      "report_level": "summary",
+      "colors": {
+        "exp1": {
+          "bar": "#d9d9d9",
+          "edge": "#595959",
+          "error": "#262626"
+        },
+        "exp2": {
+          "bar": "#d9d9d9",
+          "edge": "#595959",
+          "error": "#262626"
+        },
+        "expected": "#000000"
+      }
+    }
+  }
+}
